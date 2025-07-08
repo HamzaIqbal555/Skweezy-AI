@@ -1,7 +1,10 @@
+import sys
+__import__('pysqlite3')
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 from langchain.document_loaders import PyPDFLoader, TextLoader
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
-from langchain.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 from langchain.schema import HumanMessage, AIMessage
 import base64
@@ -14,9 +17,7 @@ from GenUtils import summarize_chain, generate_audio, confirm_deletion
 from langchain_community.document_loaders import UnstructuredURLLoader, PyPDFLoader
 from langchain_groq import ChatGroq
 import streamlit as st
-import sys
-__import__('pysqlite3')
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 
 # from PIL import Image
 # from streamlit_extras.switch_page_button import switch_page
