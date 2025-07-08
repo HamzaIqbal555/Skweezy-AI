@@ -17,6 +17,6 @@ streamlit_extras
 torch
 torchvision
 sentence-transformers
-chromadb
+chromadb==0.4.0
 protobuf<=3.20.3
 pysqlite3-binary
