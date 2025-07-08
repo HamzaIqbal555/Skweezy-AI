@@ -1,24 +1,28 @@
-import streamlit as st
-from langchain_groq import ChatGroq
-from langchain_community.document_loaders import UnstructuredURLLoader, PyPDFLoader
-from GenUtils import summarize_chain, generate_audio, confirm_deletion
-from YTutilities import get_transcript_as_document
-import validators
-import os
-import tempfile
-from dotenv import load_dotenv
-import base64
+from langchain.document_loaders import PyPDFLoader, TextLoader
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import Chroma
+from langchain.vectorstores import FAISS
+from langchain.chains import RetrievalQA
 from langchain.schema import HumanMessage, AIMessage
+import base64
+from dotenv import load_dotenv
+import tempfile
+import os
+import validators
+from YTutilities import get_transcript_as_document
+from GenUtils import summarize_chain, generate_audio, confirm_deletion
+from langchain_community.document_loaders import UnstructuredURLLoader, PyPDFLoader
+from langchain_groq import ChatGroq
+import streamlit as st
+import sys
+__import__('pysqlite3')
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 # from PIL import Image
 # from streamlit_extras.switch_page_button import switch_page
 # from streamlit_extras.stylable_container import stylable_container
 # from transformers import BlipProcessor, BlipForConditionalGeneration
 # import torch
-from langchain.chains import RetrievalQA
-from langchain.vectorstores import FAISS
-from langchain.vectorstores import Chroma
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.document_loaders import PyPDFLoader, TextLoader
 
 
 # Load environment variables
