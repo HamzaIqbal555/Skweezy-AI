@@ -5,7 +5,7 @@ from gtts import gTTS
 import base64
 import re
 from transformers import BlipProcessor, BlipForConditionalGeneration
-import torch
+# import torch
 import streamlit as st
 
 # Defining max tokens
@@ -88,3 +88,16 @@ def load_blip_model():
     model = BlipForConditionalGeneration.from_pretrained(
         "Salesforce/blip-image-captioning-base")
     return processor, model
+
+
+@st.dialog("Confirm Deletion")
+def confirm_deletion():
+    st.write("Are you sure you want to delete it?")
+    if st.button("Yes"):
+        st.session_state.messages = []
+        st.session_state.qa = None
+        st.success("Chat cleared successfully.")
+        st.rerun()
+    if st.button("Cancel"):
+        st.success("Deletion canceled.")
+        st.rerun()

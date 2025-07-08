@@ -16,3 +16,5 @@ Pillow
 streamlit_extras
 torch
 torchvision
+sentence-transformers
+chromadb
