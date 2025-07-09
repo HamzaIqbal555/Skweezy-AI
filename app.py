@@ -1,10 +1,15 @@
 import sys
-__import__('pysqlite3')
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+try:
+    __import__('pysqlite3')
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+    print("Using pysqlite3 for enhanced sqlite support")
+except ModuleNotFoundError:
+    print("pysqlite3 not found — using built-in sqlite3")
 
 from langchain.document_loaders import PyPDFLoader, TextLoader
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
+import streamlit.components.v1 as components
 from langchain.chains import RetrievalQA
 from langchain.schema import HumanMessage, AIMessage
 import base64
@@ -217,75 +222,104 @@ elif st.session_state.mode == "pdf":
 if st.session_state.mode == "chat":
     st.header("💬 Chat Mode")
 
-    # File Upload and Document Processing
-    uploaded = st.file_uploader(
-        "Upload PDF or TXT to chat with:", type=["pdf", "txt"], label_visibility="collapsed", key="file_uploader"
-    )
-    if uploaded:
-        try:
-            with tempfile.NamedTemporaryFile(
-                suffix=".pdf" if uploaded.type == "application/pdf" else ".txt",
-                delete=False,
-            ) as tf:
-                tf.write(uploaded.getbuffer())
-                temp_path = tf.name
+    # Initialize session state for messages, qa, and documents if not already present
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
+    if 'qa' not in st.session_state:
+        st.session_state.qa = None
+    if 'all_documents' not in st.session_state:
+        st.session_state.all_documents = []
 
-            if uploaded.type == "application/pdf":
-                docs = PyPDFLoader(temp_path).load()
-            else:
-                docs = TextLoader(temp_path).load()
+    # Display existing chat messages
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-            vect = Chroma.from_documents(docs, embeddings)
-            st.session_state.qa = RetrievalQA.from_chain_type(
-                llm=llm, retriever=vect.as_retriever(), return_source_documents=True
-            )
-            st.success("Document loaded ✅ You can now ask questions about it.")
-        except Exception as e:
-            st.error(f"❌ Error loading document: {e}")
-            st.session_state.qa = None
+    # Single chat_input with file support
+    prompt = st.chat_input("Ask me anything…", accept_file=True, file_type=["pdf", "txt", "docx"], key="chat_input")
 
-    # Show chat history
-    for m in st.session_state.messages:
-        with st.chat_message(m["role"]):
-            st.markdown(m["content"])
-
-    # Chat input
-    prompt = st.chat_input("Ask me anything…", key="chat_input")
-
+    # Extract files and text safely
+    uploaded_files = []
+    user_text = ""
     if prompt:
-        if prompt.strip():
-            st.session_state.messages.append(
-                {"role": "user", "content": prompt})
-
-            with st.chat_message("assistant"):
-                answer = ""
-                if st.session_state.get("qa"):
-                    try:
-                        result = st.session_state.qa({"query": prompt})
-                        answer = result["result"]
-                        st.markdown(answer)
-                        for doc in result["source_documents"][:2]:
-                            snippet = doc.page_content[:200].replace("\n", " ")
-                            st.markdown(f"> “{snippet}…”")
-                    except Exception as qa_err:
-                        answer = f"Error during QA: {qa_err}"
-                        st.error(answer)
-                else:
-                    try:
-                        msg = HumanMessage(content=prompt)
-                        response = llm.invoke([msg])
-                        answer = response.content
-                        st.markdown(answer)
-                    except Exception as llm_err:
-                        answer = f"LLM error: {llm_err}"
-                        st.error(answer)
-
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": answer})
-
-    if st.button("🧹 Clear Chat"):
-        if st.session_state.get("messages"):
-            confirm_deletion()
+        if isinstance(prompt, str):
+            user_text = prompt
         else:
-            st.warning("No chat messages to clear.")
+            user_text = prompt.get("text", "") or ""
+            uploaded_files = prompt.get("files", []) or []
+
+    # If new files uploaded: load and add to the cumulative list of documents
+    if uploaded_files:
+        uploaded_files = uploaded_files[:3]  # limit to 3
+        new_docs = []
+        for f in uploaded_files:
+            suffix = os.path.splitext(f.name)[1].lower()
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tf:
+                tf.write(f.getbuffer())
+                if suffix == ".pdf":
+                    new_docs.extend(PyPDFLoader(tf.name).load())
+                else:
+                    new_docs.extend(TextLoader(tf.name).load())
+
+        # Add new documents to the cumulative list
+        st.session_state.all_documents.extend(new_docs)
+
+        # Update the QA system with all documents
+        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        vect = Chroma.from_documents(st.session_state.all_documents, embeddings)
+        st.session_state.qa = RetrievalQA.from_chain_type(
+            llm=llm, retriever=vect.as_retriever(), return_source_documents=True
+        )
+
+        # Add uploaded files info to chat history
+        uploaded_files_info = ", ".join([f.name for f in uploaded_files])
+        st.session_state.messages.append({"role": "user", "content": f"Uploaded files: {uploaded_files_info}"})
+        st.success(f"✅ Loaded {len(uploaded_files)} file(s). You can now ask questions.")
+
+    # Handle user message
+    if user_text.strip():
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(user_text)
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": user_text})
+
+        # Display assistant response in chat message container
+        with st.chat_message("assistant"):
+            try:
+                if st.session_state.get("qa"):
+                    res = st.session_state.qa({"query": user_text})
+                    answer = res["result"]
+                    st.markdown(answer)
+                    for doc in res["source_documents"][:2]:
+                        snippet = doc.page_content[:200].replace("\n", " ")
+                        st.markdown(f"> “{snippet}…”")
+                else:
+                    msg = HumanMessage(content=user_text)
+                    resp = llm.invoke([msg])
+                    answer = resp.content
+                    st.markdown(answer)
+            except Exception as e:
+                answer = f"❌ Error: {e}"
+                st.error(answer)
+        # Add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+
+    # Clear chat button with confirmation
+    if st.button("🧹 Clear Chat"):
+        st.session_state.show_confirmation = True
+
+    if st.session_state.get('show_confirmation', False):
+        st.warning("Are you sure you want to clear the chat history?")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Yes, clear chat"):
+                st.session_state.messages = []
+                st.session_state.qa = None
+                st.session_state.all_documents = []
+                st.session_state.show_confirmation = False
+                st.rerun()
+        with col2:
+            if st.button("No, keep chat"):
+                st.session_state.show_confirmation = False
+                st.rerun()
