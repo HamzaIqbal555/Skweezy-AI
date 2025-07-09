@@ -71,7 +71,7 @@ with st.container():
 
     st.markdown("""
         <div class="main-title">🧠 Skweezy AI</div>
-        <div class="subtitle">Summarize YouTube, Websites, and PDFs on the fly — with downloadable audio! Or Get an image Description</div>
+        <div class="subtitle">Summarize YouTube, Websites, and PDFs on the fly — with downloadable audio!</div>
     """, unsafe_allow_html=True)
 
 # Initialize LLM
