@@ -1,6 +1,6 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.chains.summarize import load_summarize_chain
-from langchain.prompts import PromptTemplate
+from langchain_classic.chains.summarize.chain import load_summarize_chain
+from langchain_core.prompts import PromptTemplate
 from gtts import gTTS
 import base64
 import re
@@ -21,44 +21,46 @@ def chunk_documents(docs):
 
 def summarize_chain(docs, llm):
     total_text = " ".join(doc.page_content for doc in docs)
-    # Taking rough estimate: 1 token ≈ 4 characters for English
     total_tokens = len(total_text) // 4
 
-    # Use 'stuff' for summarization if under token limit else switch to 'map-reduce'
     if total_tokens < MAX_TOKENS:
-        # Prompt setup
-        template = ('''Please provide a concise and detailed summary of the following content.
-                    Understand the type and message of the text provided.
-                    Add suitable title followed by introduction.  
-                    Keep section-wise brief pointers (mentioning topics or highlights).
-                    End with a fitting conclusion.
-                    Text: {text}''')
-
-        prompt = PromptTemplate(input_variables=['text'], template=template)
+        prompt = PromptTemplate(input_variables=['text'], template=(
+            '''Please provide a concise and detailed summary of the following content.
+               Understand the type and message of the text provided.
+               Add suitable title followed by introduction.
+               Keep section-wise brief pointers (mentioning topics or highlights).
+               End with a fitting conclusion.
+               Text: {text}'''
+        ))
         chain = load_summarize_chain(llm, chain_type="stuff", prompt=prompt)
-        return chain.run(docs)
+        result = chain.invoke({"input_documents": docs})
+        # If the output is a dict with metadata, get the actual summary text:
+        if isinstance(result, dict):
+            return result.get("output_text") or result.get("text") or str(result)
+        return str(result)
+
     else:
         chunked_docs = chunk_documents(docs)
-
-        initial_template = ("You are an assistant for text summarization tasks. "
-                            "Write a concise and short summary of the provided text. \n"
-                            "{text}"
-                            )
-
-        initial_prompt = PromptTemplate(
-            input_variables=['text'], template=initial_template)
-
-        final_template = '''Provide the final summary of the entire text with these important points.
-                        Add a suitable title. Start the precise summary with an introduction, state key notes in pointers and 
-                        end with conclusion.
-                        The provided text: {text}
-                    '''
-        final_prompt = PromptTemplate(
-            input_variables=['text'], template=final_template)
+        initial_prompt = PromptTemplate(input_variables=['text'], template=(
+            "You are an assistant for text summarization tasks. Write a concise and short summary of the provided text.\n{text}"
+        ))
+        final_prompt = PromptTemplate(input_variables=['text'], template=(
+            '''Provide the final summary of the entire text with these important points.
+               Add a suitable title. Start the precise summary with an introduction, state key notes in pointers and 
+               end with conclusion.
+               The provided text: {text}'''
+        ))
 
         chain = load_summarize_chain(
-            llm, chain_type="map_reduce", map_prompt=initial_prompt, combine_prompt=final_prompt)
-        return chain.run(chunked_docs)
+            llm,
+            chain_type="map_reduce",
+            map_prompt=initial_prompt,
+            combine_prompt=final_prompt
+        )
+        result = chain.invoke({"input_documents": chunked_docs})
+        if isinstance(result, dict):
+            return result.get("output_text") or result.get("text") or str(result)
+        return str(result)
 
 
 def generate_audio(summary_text, lang="en"):
