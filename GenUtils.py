@@ -4,6 +4,8 @@ from langchain_core.prompts import PromptTemplate
 from gtts import gTTS
 import base64
 import re
+import pandas as pd
+from PyPDF2 import PdfReader
 from transformers import BlipProcessor, BlipForConditionalGeneration
 # import torch
 import streamlit as st
@@ -62,6 +64,19 @@ def summarize_chain(docs, llm):
             return result.get("output_text") or result.get("text") or str(result)
         return str(result)
 
+
+def extract_text_from_pdf(uploaded_file):
+    
+    reader = PdfReader(uploaded_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+    return text
+
+
+def process_csv_file(uploaded_file):
+    df = pd.read_csv(uploaded_file)
+    return df.to_string()  # Convert DataFrame to string for processing
 
 def generate_audio(summary_text, lang="en"):
 
