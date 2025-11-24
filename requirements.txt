@@ -6,6 +6,7 @@ streamlit
 langchain_groq
 langchain_text_splitters
 pypdf
+PyPDF2
 validators==0.28.1
 youtube_transcript_api
 pytube
