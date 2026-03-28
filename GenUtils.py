@@ -5,7 +5,7 @@ from gtts import gTTS
 import base64
 import re
 import pandas as pd
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from transformers import BlipProcessor, BlipForConditionalGeneration
 # import torch
 import streamlit as st
