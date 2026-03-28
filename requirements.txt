@@ -12,7 +12,7 @@ yt-dlp==2024.7.9
 assemblyai
 pytube
 unstructured
-transformers
+transformers<=4.48.3
 gtts
 Pillow
 streamlit_extras
