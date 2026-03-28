@@ -16,7 +16,6 @@ transformers
 gtts
 Pillow
 streamlit_extras
-torchvision
 sentence-transformers
 chromadb>=1.0.0
 hnswlib

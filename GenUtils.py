@@ -66,7 +66,7 @@ def summarize_chain(docs, llm):
 
 
 def extract_text_from_pdf(uploaded_file):
-    
+
     reader = PdfReader(uploaded_file)
     text = ""
     for page in reader.pages:
@@ -77,6 +77,7 @@ def extract_text_from_pdf(uploaded_file):
 def process_csv_file(uploaded_file):
     df = pd.read_csv(uploaded_file)
     return df.to_string()  # Convert DataFrame to string for processing
+
 
 def generate_audio(summary_text, lang="en"):
 
@@ -107,14 +108,6 @@ def load_blip_model():
     return processor, model
 
 
-@st.dialog("Confirm Deletion")
 def confirm_deletion():
-    st.write("Are you sure you want to delete it?")
-    if st.button("Yes"):
-        st.session_state.messages = []
-        st.session_state.qa = None
-        st.success("Chat cleared successfully.")
-        st.rerun()
-    if st.button("Cancel"):
-        st.success("Deletion canceled.")
-        st.rerun()
+    """Legacy function - replaced by st.warning/columns in app.py chat clear."""
+    pass

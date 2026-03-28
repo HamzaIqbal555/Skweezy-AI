@@ -138,27 +138,34 @@ elif st.session_state.mode == "web":
         else:
             try:
                 with st.spinner("Summarizing website content..."):
-                    loader = UnstructuredURLLoader(
-                        urls=[url],
-                        ssl_verify=True,
-                        headers={"User-Agent": "Mozilla/5.0"}
-                    )
+                    # Use WebBaseLoader instead of Unstructured
+                    from langchain_community.document_loaders import WebBaseLoader
+
+                    loader = WebBaseLoader(url)
+                    # Add headers to bypass basic bot detection
+                    loader.requests_kwargs = {
+                        "headers": {"User-Agent": "Mozilla/5.0"}}
+
                     docs = loader.load()
 
-                    summary = summarize_chain(docs, llm)
+                    if not docs or not docs[0].page_content.strip():
+                        st.error(
+                            "Could not extract any text from this website.")
+                    else:
+                        summary = summarize_chain(docs, llm)
 
-                    audio_data, b64_audio = generate_audio(summary)
-                    st.audio(audio_data, format="audio/mp3")
-                    st.download_button("⬇️ Download Audio",
-                                       data=audio_data, file_name="summary.mp3")
+                        audio_data, b64_audio = generate_audio(summary)
+                        st.audio(audio_data, format="audio/mp3")
+                        st.download_button("⬇️ Download Audio",
+                                           data=audio_data, file_name="summary.mp3")
 
-                    st.subheader("Summary")
-                    st.success(summary)
+                        st.subheader("Summary")
+                        st.success(summary)
 
-                    b64_text = base64.b64encode(summary.encode()).decode()
-                    st.markdown(
-                        f'<a href="data:file/txt;base64,{b64_text}" download="summary.txt">📄 Download Summary</a>',
-                        unsafe_allow_html=True)
+                        b64_text = base64.b64encode(summary.encode()).decode()
+                        st.markdown(
+                            f'<a href="data:file/txt;base64,{b64_text}" download="summary.txt">📄 Download Summary</a>',
+                            unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Error: {e}")
 
