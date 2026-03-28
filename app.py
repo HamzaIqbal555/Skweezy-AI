@@ -52,19 +52,26 @@ with st.container():
             gap: 1.5em;
             flex-wrap: wrap;
         }
-        .stButton>button {
-            border-radius: 14px;
-            padding: 12px 28px;
-            font-size: 1.1em;
-            font-weight: 500;
-            background-color: #1f1f1f;
-            border: 1px solid #3a3a3a;
-            transition: all 0.2s ease-in-out;
-            min-width: 140px;
+        .stButton > button {
+            border-radius: 14px !important;
+            padding: 12px 28px !important;
+            font-size: 1.1em !important;
+            font-weight: 500 !important;
+            background: var(--p1-50, linear-gradient(var(--bg-base-bg, white), var(--bg-base-bg, white))) !important;
+            color: var(--text-primary, black) !important;
+            border: 1px solid var(--border-color, #ddd) !important;
+            transition: all 0.2s ease-in-out !important;
+            min-width: 140px !important;
+            box-shadow: var(--shadow-md, 0 1px 2px 0 rgb(0 0 0 / 0.05)) !important;
         }
-        .stButton>button:hover {
-            background-color: #2c2c2c;
-            border-color: #555;
+        .stButton > button:hover {
+            background: var(--p1-100, linear-gradient(var(--bg-base-bg, #f0f0f0), var(--bg-base-bg, #f0f0f0))) !important;
+            border-color: var(--p1-200, #999) !important;
+            color: var(--text-primary, black) !important;
+            transform: translateY(-1px) !important;
+        }
+        .stButton > button:active {
+            transform: translateY(0) !important;
         }
         </style>
     """, unsafe_allow_html=True)

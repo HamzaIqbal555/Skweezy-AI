@@ -9,6 +9,7 @@ from PyPDF2 import PdfReader
 from transformers import BlipProcessor, BlipForConditionalGeneration
 # import torch
 import streamlit as st
+import io
 
 # Defining max tokens
 MAX_TOKENS = 6000
@@ -80,25 +81,27 @@ def process_csv_file(uploaded_file):
 
 
 def generate_audio(summary_text, lang="en"):
-
     # Formatting text for better audio
-    # Simplifying formatting of markdown text
     text = re.sub(r'[#*_>`\-]', '', summary_text)
-    # Add periods if line ends without one
     text = re.sub(r'(?<=[^\.\!\?])\n', '. ', text)
-    text = re.sub(r'\n+', ' ', text)                    # Flatten newlines
-    text = re.sub(r'\s{2,}', ' ', text)                 # Remove extra spaces
+    text = re.sub(r'\n+', ' ', text)
+    text = re.sub(r'\s{2,}', ' ', text)
 
+    # Use BytesIO to store the audio in memory instead of a file
+    fp = io.BytesIO()
     tts = gTTS(text, lang=lang)
-    tts.save("summary_audio.mp3")
-    with open("summary_audio.mp3", "rb") as f:
-        audio_bytes = f.read()
+    tts.write_to_fp(fp)
+
+    # Seek to the beginning of the buffer to read it
+    fp.seek(0)
+    audio_bytes = fp.read()
 
     b64 = base64.b64encode(audio_bytes).decode()
     return audio_bytes, b64
 
-
 # Load BLIP model and processor
+
+
 @st.cache_resource
 def load_blip_model():
     processor = BlipProcessor.from_pretrained(
