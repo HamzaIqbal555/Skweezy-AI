@@ -14,10 +14,11 @@ chromadb
 pysqlite3-binary
 
 # THE FIX: Keep these specific to avoid the 'nn' bug
-torch>=2.0.0
-transformers==4.48.3
-sentence-transformers==3.4.1
-accelerate==1.3.0
+# Removed BLIP/Torch (user uses pure Groq vision)
+# torch>=2.0.0
+# transformers==4.48.3
+# sentence-transformers==3.4.1
+# accelerate==1.3.0
 
 # Content Processing
 yt-dlp

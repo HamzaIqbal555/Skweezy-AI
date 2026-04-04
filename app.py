@@ -18,7 +18,7 @@ import tempfile
 import os
 import validators
 from YTutilities import get_transcript_as_document
-from GenUtils import summarize_chain, generate_audio, confirm_deletion, extract_text_from_pdf, process_csv_file
+from GenUtils import summarize_chain, generate_audio, confirm_deletion, extract_text_from_pdf, process_csv_file, describe_image
 from langchain_groq import ChatGroq
 import streamlit as st
 
@@ -83,13 +83,16 @@ with st.container():
 
 # Initialize LLM
 llm = ChatGroq(model="openai/gpt-oss-120b", groq_api_key=groq_api_key)
-
+vision_llm = ChatGroq(
+    model="meta-llama/llama-4-scout-17b-16e-instruct",
+    groq_api_key=groq_api_key
+)
 # Mode selection
 if "mode" not in st.session_state:
     st.session_state.mode = None
 
 # Custom button layout
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
     if st.button("🎥 YouTube"):
@@ -103,6 +106,10 @@ with col3:
 with col4:
     if st.button("💬 Chat"):
         st.session_state.mode = "chat"
+
+with col5:
+    if st.button("🖼️ Image"):
+        st.session_state.mode = "image"
 
 # Initialize session state for chat history
 if "messages" not in st.session_state:
@@ -208,6 +215,27 @@ elif st.session_state.mode == "pdf":
         except Exception as e:
             st.error(f"Error: {e}")
 
+elif st.session_state.mode == "image":
+    uploaded_image = st.file_uploader(
+        "Upload an image (png, jpg, jpeg)", type=['png', 'jpg', 'jpeg'])
+    if uploaded_image:
+        image_bytes = uploaded_image.read()
+        st.image(image_bytes, caption="Uploaded Image", width=250)
+        with st.spinner("Generating precise description..."):
+            try:
+                description = describe_image(image_bytes, vision_llm)
+                audio_data = generate_audio(description)[0]
+                st.audio(audio_data, format="audio/mp3")
+                st.download_button("⬇️ Download Audio", audio_data,
+                                   file_name="image_description.mp3")
+                st.subheader("🖼️ Precise Description")
+                st.success(description)
+                b64_text = base64.b64encode(description.encode()).decode()
+                st.markdown(
+                    f'<a href="data:file/txt;base64,{b64_text}" download="description.txt">📄 Download Text</a>', unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error: {e}")
+
 elif st.session_state.mode == "file_upload":
     uploaded_file = st.file_uploader("Upload a file (e.g., .txt, .pdf, .csv):")
     if uploaded_file is not None:
@@ -236,7 +264,6 @@ elif st.session_state.mode == "file_upload":
                     st.audio(audio_data, format="audio/mp3")
                     st.download_button("⬇️ Download Audio",
                                        data=audio_data, file_name="summary.mp3")
-
                     st.subheader("Summary")
                     st.write(summary)
         except Exception as e:

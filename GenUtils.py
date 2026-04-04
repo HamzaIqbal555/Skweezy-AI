@@ -3,13 +3,12 @@ from langchain_classic.chains.summarize.chain import load_summarize_chain
 from langchain_core.prompts import PromptTemplate
 from gtts import gTTS
 import base64
-import re
+import re, io
 import pandas as pd
 from pypdf import PdfReader
-from transformers import BlipProcessor, BlipForConditionalGeneration
-# import torch
-import streamlit as st
-import io
+# import streamlit as st
+import base64
+from langchain_core.messages import HumanMessage
 
 # Defining max tokens
 MAX_TOKENS = 6000
@@ -102,13 +101,27 @@ def generate_audio(summary_text, lang="en"):
 # Load BLIP model and processor
 
 
-@st.cache_resource
-def load_blip_model():
-    processor = BlipProcessor.from_pretrained(
-        "Salesforce/blip-image-captioning-base")
-    model = BlipForConditionalGeneration.from_pretrained(
-        "Salesforce/blip-image-captioning-base")
-    return processor, model
+# Removed BLIP - using pure Groq vision
+
+
+def describe_image(image_bytes, llm):
+    # Convert bytes to base64
+    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+
+    # Create the multimodal message
+    message = HumanMessage(
+        content=[
+            {"type": "text", "text": "Describe this image in detail."},
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+            },
+        ]
+    )
+
+    # Send to Groq via LangChain's invoke method
+    response = llm.invoke([message])
+    return response.content
 
 
 def confirm_deletion():
